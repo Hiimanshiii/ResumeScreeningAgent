@@ -1,0 +1,346 @@
+@page
+@model ResumeScreeningAgent.Pages.ReportsModel
+@{
+    ViewData["Title"] = "Resume Screening Report Summary";
+}
+
+<div class="reports-wrapper py-4">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2">
+        <div>
+            <h1 class="fw-bold text-dark mb-1">Resume Screening Report</h1>
+            <p class="text-muted mb-0">Summary analytics and ranking reports generated for candidate profiles</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a asp-page="/Index" class="btn btn-outline-secondary action-btn btn-sm">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <button type="button" id="refreshBtn" class="btn btn-primary action-btn btn-sm text-white">
+                <i class="bi bi-arrow-clockwise"></i> Refresh Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="errorAlert" class="alert alert-danger d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+    <div id="successAlert" class="alert alert-success d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+
+    <div class="position-relative" style="min-height: 400px;">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index:10;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
+                <div class="mt-2 text-secondary fw-semibold" id="loadingMessage">Generating report summaries...</div>
+            </div>
+        </div>
+
+        <div id="reportsContentView" class="d-none animate__animated animate__fadeIn">
+            <!-- Summary Stats Section -->
+            <div class="row g-3 mb-4">
+                <!-- Total Resumes -->
+                <div class="col-6 col-md-3 col-lg-2">
+                    <div class="stat-box border-left-primary">
+                        <span class="stat-label">Total Resumes</span>
+                        <div class="stat-value mt-1" id="totalResumes">—</div>
+                    </div>
+                </div>
+
+                <!-- Top Candidate -->
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="stat-box border-left-success">
+                        <span class="stat-label">Top Candidate</span>
+                        <div class="stat-value mt-1 text-truncate" id="topCandidate" style="font-size: 1.25rem;">—</div>
+                    </div>
+                </div>
+
+                <!-- Average Score -->
+                <div class="col-6 col-md-3 col-lg-2">
+                    <div class="stat-box border-left-warning">
+                        <span class="stat-label">Average Score</span>
+                        <div class="stat-value mt-1" id="avgScore">—</div>
+                    </div>
+                </div>
+
+                <!-- Strong Hires -->
+                <div class="col-6 col-md-3 col-lg-2">
+                    <div class="stat-box border-left-success">
+                        <span class="stat-label">Strong Hires</span>
+                        <div class="stat-value mt-1 text-success" id="strongHireCount">—</div>
+                    </div>
+                </div>
+
+                <!-- Hires -->
+                <div class="col-6 col-md-3 col-lg-1">
+                    <div class="stat-box border-left-info">
+                        <span class="stat-label">Hires</span>
+                        <div class="stat-value mt-1 text-primary" id="hireCount">—</div>
+                    </div>
+                </div>
+
+                <!-- Considers -->
+                <div class="col-6 col-md-3 col-lg-1">
+                    <div class="stat-box border-left-warning">
+                        <span class="stat-label">Consider</span>
+                        <div class="stat-value mt-1 text-warning" id="considerCount">—</div>
+                    </div>
+                </div>
+
+                <!-- Rejects -->
+                <div class="col-6 col-md-3 col-lg-1">
+                    <div class="stat-box border-left-danger">
+                        <span class="stat-label">Reject</span>
+                        <div class="stat-value mt-1 text-danger" id="rejectCount">—</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <!-- Left Column: Actions / PDF Report details -->
+                <div class="col-12 col-lg-4">
+                    <div class="card shadow-sm reports-card p-4 h-100 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="rounded-circle p-2 d-inline-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px; background-color: rgba(25, 135, 84, 0.1);">
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 1.25rem;"></i>
+                                </div>
+                                <h5 class="fw-bold text-dark mb-0">PDF Report Status</h5>
+                            </div>
+                            <p class="text-secondary small mb-4">The candidate ranking report has been generated successfully and is ready for download.</p>
+                            
+                            <div id="pdfTimestampBox" class="mb-4 d-none">
+                                <span class="text-uppercase text-muted fw-bold d-block mb-1" style="font-size: 0.7rem; letter-spacing: 0.05em;">Generated On</span>
+                                <div class="d-flex align-items-center text-dark small fw-semibold">
+                                    <i class="bi bi-calendar-check me-2 text-success"></i>
+                                    <span id="pdfTimestampText">—</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="button" id="downloadPdfBtn" class="btn btn-success w-100 action-btn text-white py-2 fw-semibold">
+                                <i class="bi bi-cloud-arrow-down-fill me-1"></i> Download Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Ranking Table -->
+                <div class="col-12 col-lg-8">
+                    <div class="card shadow-sm reports-card p-4">
+                        <h5 class="fw-bold text-dark mb-3">Candidate Rankings</h5>
+                        
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Candidate Name</th>
+                                        <th>Score</th>
+                                        <th>Recommendation</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rankingsTableBody">
+                                    <!-- Dynamic rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    (function () {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const reportsContentView = document.getElementById('reportsContentView');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        const totalResumes = document.getElementById('totalResumes');
+        const topCandidate = document.getElementById('topCandidate');
+        const avgScore = document.getElementById('avgScore');
+        const strongHireCount = document.getElementById('strongHireCount');
+        const hireCount = document.getElementById('hireCount');
+        const considerCount = document.getElementById('considerCount');
+        const rejectCount = document.getElementById('rejectCount');
+
+        const pdfTimestampBox = document.getElementById('pdfTimestampBox');
+        const pdfTimestampText = document.getElementById('pdfTimestampText');
+        const rankingsTableBody = document.getElementById('rankingsTableBody');
+
+        const refreshBtn = document.getElementById('refreshBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+
+        let generatedPdfPath = '';
+
+        function showLoading(msg = 'Processing...') {
+            loadingMessage.textContent = msg;
+            loadingOverlay.classList.remove('d-none');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('d-none');
+        }
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('d-none');
+            successAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccess(message) {
+            successAlert.textContent = message;
+            successAlert.classList.remove('d-none');
+            errorAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function getScoreBadgeClass(score) {
+            if (score >= 90) return 'bg-success text-white';
+            if (score >= 70) return 'bg-primary text-white';
+            if (score >= 50) return 'bg-warning text-dark';
+            return 'bg-danger text-white';
+        }
+
+        function getRecBadgeClass(rec) {
+            const r = String(rec).toLowerCase();
+            if (r.includes('strong hire')) return 'bg-success text-white';
+            if (r.includes('hire')) return 'bg-primary text-white';
+            if (r.includes('consider')) return 'bg-warning text-dark';
+            return 'bg-danger text-white';
+        }
+
+        function escapeHtml(string) {
+            return String(string).replace(/[&<>"']/g, function (s) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[s];
+            });
+        }
+
+        // Generate PDF report & load candidate dashboard summary
+        async function loadReportSummary() {
+            showLoading('Generating PDF report and loading summaries...');
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+            reportsContentView.classList.add('d-none');
+
+            try {
+                // 1. Generate PDF
+                const pdfResponse = await fetch('/generate-report');
+                if (pdfResponse.status === 404) {
+                    throw new Error('Please configure a Job Description first.');
+                }
+                if (!pdfResponse.ok) throw new Error('Failed to execute PDF generation.');
+
+                const pdfData = await pdfResponse.json();
+                generatedPdfPath = pdfData.filePath || '';
+                
+                if (generatedPdfPath) {
+                    const filename = generatedPdfPath.split(/[\/\\]/).pop();
+                    const match = filename.match(/CandidateRankingReport_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.pdf/);
+                    if (match) {
+                        const year = match[1];
+                        const month = parseInt(match[2], 10);
+                        const day = parseInt(match[3], 10);
+                        const hour = parseInt(match[4], 10);
+                        const minute = parseInt(match[5], 10);
+                        const second = parseInt(match[6], 10);
+                        
+                        const date = new Date(year, month - 1, day, hour, minute, second);
+                        const options = { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+                        pdfTimestampText.textContent = date.toLocaleString('en-US', options);
+                        pdfTimestampBox.classList.remove('d-none');
+                    } else {
+                        pdfTimestampBox.classList.add('d-none');
+                    }
+                } else {
+                    pdfTimestampBox.classList.add('d-none');
+                }
+
+                // 2. Load candidate ranking details
+                const candidatesResponse = await fetch('/match-job');
+                if (!candidatesResponse.ok) throw new Error('Failed to load candidate list.');
+                const candidates = await candidatesResponse.json();
+
+                // Compute local summaries and set recommendations based on score rules
+                let strong = 0, hire = 0, consider = 0, reject = 0;
+                candidates.forEach(c => {
+                    if (c.score >= 80) {
+                        c.recommendation = "Strong Hire";
+                        strong++;
+                    } else if (c.score >= 60) {
+                        c.recommendation = "Hire";
+                        hire++;
+                    } else if (c.score >= 40) {
+                        c.recommendation = "Consider";
+                        consider++;
+                    } else {
+                        c.recommendation = "Reject";
+                        reject++;
+                    }
+                });
+
+                // Calculate average
+                const sum = candidates.reduce((prev, current) => prev + current.score, 0);
+                const avg = candidates.length > 0 ? sum / candidates.length : 0;
+
+                // Populate dashboard
+                totalResumes.textContent = candidates.length;
+                topCandidate.textContent = candidates.length > 0 ? (candidates[0].name || 'N/A') : 'N/A';
+                avgScore.textContent = Math.round(avg);
+                strongHireCount.textContent = strong;
+                hireCount.textContent = hire;
+                considerCount.textContent = consider;
+                rejectCount.textContent = reject;
+
+                // Populate table
+                rankingsTableBody.innerHTML = '';
+                if (candidates.length === 0) {
+                    rankingsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">No candidates rank list available.</td>
+                        </tr>
+                    `;
+                } else {
+                    candidates.forEach(c => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="fw-bold text-secondary">#${c.rank}</td>
+                            <td class="fw-semibold text-dark">${escapeHtml(c.name)}</td>
+                            <td><span class="badge badge-score ${getScoreBadgeClass(c.score)}">${Math.round(c.score)}</span></td>
+                            <td><span class="badge badge-rec ${getRecBadgeClass(c.recommendation)}">${c.recommendation}</span></td>
+                        `;
+                        rankingsTableBody.appendChild(tr);
+                    });
+                }
+
+                showSuccess('PDF Report generated and dashboard values compiled!');
+                reportsContentView.classList.remove('d-none');
+
+            } catch (err) {
+                showError('Unable to load report metrics. ' + (err.message || ''));
+            } finally {
+                hideLoading();
+            }
+        }
+
+        refreshBtn.addEventListener('click', loadReportSummary);
+
+        // Download PDF from /download-report
+        downloadPdfBtn.addEventListener('click', () => {
+            window.location.href = '/download-report';
+        });
+
+        document.addEventListener('DOMContentLoaded', loadReportSummary);
+    })();
+</script>

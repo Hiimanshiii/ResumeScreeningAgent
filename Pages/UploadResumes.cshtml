@@ -1,0 +1,381 @@
+@page
+@model ResumeScreeningAgent.Pages.UploadResumesModel
+@{
+    ViewData["Title"] = "Upload Resumes";
+}
+
+<div class="upload-wrapper py-4">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2">
+        <div>
+            <h1 class="fw-bold text-dark mb-1">Upload Candidate Resumes</h1>
+            <p class="text-muted mb-0">Drag and drop or select files to add resumes to the screening system</p>
+        </div>
+    </div>
+
+    <!-- Error/Success Alerts -->
+    <div id="errorAlert" class="alert alert-danger d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+    <div id="successAlert" class="alert alert-success d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+
+    <div class="position-relative">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75 d-none" style="z-index:10; min-height: 250px;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
+                <div class="mt-2 text-secondary fw-semibold" id="loadingMessage">Processing...</div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Upload Area & Queue -->
+            <div class="col-12 col-lg-7">
+                <div class="card shadow-sm upload-card p-4 mb-4">
+                    <h5 class="fw-bold text-dark mb-3">Select Files</h5>
+                    
+                    <!-- Drag and Drop Area -->
+                    <div id="dropZone" class="drop-zone border-2 border-dashed rounded-4 p-5 text-center mb-3">
+                        <i class="bi bi-cloud-arrow-up text-primary mb-2" style="font-size: 2.5rem;"></i>
+                        <p class="mt-2 mb-1 fw-semibold text-dark">Drag and drop your PDF resumes here</p>
+                        <p class="text-muted small">or click to browse local files (PDF only)</p>
+                        <input type="file" id="fileInput" multiple accept=".pdf" class="d-none" />
+                    </div>
+
+                    <!-- Selected Files Table/List -->
+                    <div id="queueSection" class="d-none">
+                        <h6 class="fw-semibold text-secondary mb-2">Files to Upload</h6>
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>File Name</th>
+                                        <th>Size</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="queueTableBody"></tbody>
+                            </table>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <button type="button" id="clearQueueBtn" class="btn btn-outline-secondary btn-sm rounded-3 px-3">Clear All</button>
+                            <button type="button" id="uploadBtn" class="btn btn-primary btn-sm rounded-3 px-3">
+                                <i class="bi bi-upload"></i> Upload Files
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Existing Resumes List -->
+            <div class="col-12 col-lg-5">
+                <div class="card shadow-sm resumes-list-card p-4">
+                    <h5 class="fw-bold text-dark mb-3">Uploaded Resumes</h5>
+                    
+                    <div class="table-responsive" style="max-height: 420px; overflow-y: auto;">
+                        <table class="table align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Resume Name</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resumesTableBody">
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4">
+                                        <div class="spinner-border spinner-border-sm text-secondary me-2" role="status"></div>
+                                        Loading resumes...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="deleteConfirmModalLabel">Delete Resume</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-3">
+                    <p class="mb-0 text-secondary">Are you sure you want to permanently delete <strong id="deleteResumeName" class="text-dark"></strong>? This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold text-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmDeleteBtn" class="btn btn-danger rounded-3 px-3 fw-semibold">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const queueSection = document.getElementById('queueSection');
+        const queueTableBody = document.getElementById('queueTableBody');
+        const clearQueueBtn = document.getElementById('clearQueueBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const resumesTableBody = document.getElementById('resumesTableBody');
+        
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        let selectedFiles = [];
+        let fileToDelete = null;
+        let deleteModalInstance = null;
+
+        function showLoading(msg = 'Processing...') {
+            loadingMessage.textContent = msg;
+            loadingOverlay.classList.remove('d-none');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('d-none');
+        }
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('d-none');
+            successAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccess(message) {
+            successAlert.textContent = message;
+            successAlert.classList.remove('d-none');
+            errorAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // Drag & Drop event handlers
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, e => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', e => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        });
+
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            handleFiles(fileInput.files);
+        });
+
+        function handleFiles(files) {
+            let errorMsg = '';
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+                    errorMsg = 'Only PDF files are allowed.';
+                    continue;
+                }
+                // Avoid duplicates
+                if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
+                    selectedFiles.push(file);
+                }
+            }
+            if (errorMsg) {
+                showError(errorMsg);
+            }
+            updateQueueTable();
+        }
+
+        function updateQueueTable() {
+            if (selectedFiles.length === 0) {
+                queueSection.classList.add('d-none');
+                return;
+            }
+
+            queueSection.classList.remove('d-none');
+            queueTableBody.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="text-truncate fw-semibold" style="max-width: 280px;">${escapeHtml(file.name)}</td>
+                    <td>${formatBytes(file.size)}</td>
+                    <td><span class="badge bg-secondary">Ready</span></td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger border-0 p-1" onclick="removeQueueFile(${index})">
+                            <i class="bi bi-x-circle fs-5"></i>
+                        </button>
+                    </td>
+                `;
+                queueTableBody.appendChild(tr);
+            });
+        }
+
+        window.removeQueueFile = function(index) {
+            selectedFiles.splice(index, 1);
+            updateQueueTable();
+        };
+
+        clearQueueBtn.addEventListener('click', () => {
+            selectedFiles = [];
+            updateQueueTable();
+        });
+
+        function escapeHtml(string) {
+            return String(string).replace(/[&<>"']/g, function (s) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[s];
+            });
+        }
+
+        // Upload files
+        uploadBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) return;
+
+            showLoading('Uploading resumes...');
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+
+            const formData = new FormData();
+            selectedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                const response = await fetch('/upload-resumes', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || 'Upload failed');
+                }
+
+                const result = await response.json();
+                showSuccess(result.message || 'Files uploaded successfully!');
+                selectedFiles = [];
+                updateQueueTable();
+                await loadUploadedResumes();
+            } catch (err) {
+                showError('Unable to upload resumes. ' + (err.message || ''));
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Load uploaded resumes
+        async function loadUploadedResumes() {
+            try {
+                const response = await fetch('/all-resumes');
+                if (!response.ok) throw new Error('Failed to load list');
+                const files = await response.json();
+
+                if (!files || files.length === 0) {
+                    resumesTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="2" class="text-center py-4 text-muted">No resumes uploaded yet.</td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                resumesTableBody.innerHTML = '';
+                files.forEach(file => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="text-truncate fw-semibold" style="max-width: 250px;">${escapeHtml(file)}</td>
+                        <td class="text-end">
+                            <button type="button" class="btn-delete" onclick="deleteResume('${encodeURIComponent(file)}')">
+                                <i class="bi bi-trash"></i> Delete
+                            </button>
+                        </td>
+                    `;
+                    resumesTableBody.appendChild(tr);
+                });
+            } catch (err) {
+                resumesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="2" class="text-center py-4 text-danger">Unable to load resumes list.</td>
+                    </tr>
+                `;
+            }
+        }
+
+        // Delete resume trigger
+        window.deleteResume = function(fileName) {
+            fileToDelete = decodeURIComponent(fileName);
+            document.getElementById('deleteResumeName').textContent = fileToDelete;
+            
+            if (!deleteModalInstance) {
+                deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            }
+            deleteModalInstance.show();
+        };
+
+        // Confirm delete click handler
+        document.getElementById('confirmDeleteBtn').addEventListener('click', async () => {
+            if (!fileToDelete) return;
+            if (deleteModalInstance) {
+                deleteModalInstance.hide();
+            }
+
+            showLoading('Deleting resume...');
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+
+            try {
+                const response = await fetch(`/delete-resume/${encodeURIComponent(fileToDelete)}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || 'Delete failed');
+                }
+
+                const result = await response.json();
+                showSuccess(result.message || 'Resume deleted successfully!');
+                await loadUploadedResumes();
+            } catch (err) {
+                showError('Unable to delete resume. ' + (err.message || ''));
+            } finally {
+                hideLoading();
+                fileToDelete = null;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadUploadedResumes);
+    })();
+</script>

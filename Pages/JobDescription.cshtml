@@ -1,0 +1,298 @@
+@page
+@model ResumeScreeningAgent.Pages.JobDescriptionModel
+@{
+    ViewData["Title"] = "Job Description Management";
+}
+
+<div class="jd-wrapper py-4">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2">
+        <div>
+            <h1 class="fw-bold text-dark mb-1">Job Description Management</h1>
+            <p class="text-muted mb-0">View, create, and manage the active job description for screening candidates</p>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="errorAlert" class="alert alert-danger d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+    <div id="successAlert" class="alert alert-success d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+
+    <div class="position-relative">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75 d-none" style="z-index:10; min-height: 250px;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
+                <div class="mt-2 text-secondary fw-semibold" id="loadingMessage">Processing...</div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Left Side: Form for Upload -->
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm jd-card p-4 h-100">
+                    <h5 class="fw-bold text-dark mb-4">Upload New Job Description</h5>
+                    
+                    <form id="uploadJdForm">
+                        <div class="mb-3">
+                            <label for="jdTitle" class="form-label mb-2">Job Title</label>
+                            <input type="text" class="form-control" id="jdTitle" required placeholder="e.g. Talent Acquisition Executive" />
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="jdSkills" class="form-label mb-2">Required Skills</label>
+                            <textarea class="form-control" id="jdSkills" rows="3" required placeholder="Enter skills (e.g. Recruitment, Screening, Excel, Naukri) separated by commas or newlines"></textarea>
+                            <div class="form-text text-muted">The system matches candidates against these skills.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="jdDescription" class="form-label mb-2">Detailed Description</label>
+                            <textarea class="form-control" id="jdDescription" rows="5" required placeholder="Enter full job duties, qualifications, and role description details..."></textarea>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary action-btn">
+                                <i class="bi bi-cloud-arrow-up-fill"></i> Upload Job Description
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Side: Current Active Job Description -->
+            <div class="col-12 col-lg-6">
+                <div class="card shadow-sm jd-card p-4 h-100 d-flex flex-column justify-content-between" id="currentJdSection">
+                    <div>
+                        <h5 class="fw-bold text-dark mb-4">Current Job Description</h5>
+                        
+                        <!-- Empty State -->
+                        <div id="noJdState" class="text-center py-5 d-none">
+                            <i class="bi bi-file-earmark-x text-muted" style="font-size: 3.5rem;"></i>
+                            <h6 class="mt-3 fw-bold text-secondary">No Job Description Uploaded</h6>
+                            <p class="text-muted small px-4">Upload a job description on the left to start screening and matching candidate profiles.</p>
+                        </div>
+
+                        <!-- Active State -->
+                        <div id="activeJdState" class="d-none">
+                            <div class="mb-4">
+                                <span class="text-uppercase text-muted small fw-bold" style="font-size: 0.8rem; letter-spacing: 0.05em;">Job Title</span>
+                                <h3 class="fw-bold text-dark mt-1 mb-0" id="displayTitle">—</h3>
+                            </div>
+
+                            <div class="mb-4">
+                                <span class="text-uppercase text-muted small fw-bold d-block mb-2" style="font-size: 0.8rem; letter-spacing: 0.05em;">Required Skills</span>
+                                <div id="displaySkills" class="d-flex flex-wrap gap-2">
+                                    <!-- Dynamic badges -->
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <span class="text-uppercase text-muted small fw-bold d-block mb-2" style="font-size: 0.8rem; letter-spacing: 0.05em;">Description</span>
+                                <div id="displayDescription" class="text-secondary small overflow-auto" style="max-height: 250px; white-space: pre-wrap; line-height: 1.6;">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delete Button Footer -->
+                    <div id="jdActionsFooter" class="d-none pt-4 border-top mt-4">
+                        <button type="button" id="deleteJdBtn" class="btn btn-outline-danger w-100 action-btn">
+                            <i class="bi bi-trash"></i> Delete Job Description
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="deleteConfirmModalLabel">Delete Job Description</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="mb-0 text-secondary">Are you sure you want to permanently delete the active job description? This will clear all parsed skills and requirements.</p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold text-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" id="confirmDeleteBtn" class="btn btn-danger rounded-3 px-3 fw-semibold">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const uploadJdForm = document.getElementById('uploadJdForm');
+        const jdTitle = document.getElementById('jdTitle');
+        const jdSkills = document.getElementById('jdSkills');
+        const jdDescription = document.getElementById('jdDescription');
+
+        const noJdState = document.getElementById('noJdState');
+        const activeJdState = document.getElementById('activeJdState');
+        const displayTitle = document.getElementById('displayTitle');
+        const displaySkills = document.getElementById('displaySkills');
+        const displayDescription = document.getElementById('displayDescription');
+        const jdActionsFooter = document.getElementById('jdActionsFooter');
+        const deleteJdBtn = document.getElementById('deleteJdBtn');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingMessage = document.getElementById('loadingMessage');
+        const errorAlert = document.getElementById('errorAlert');
+        const successAlert = document.getElementById('successAlert');
+
+        let deleteModalInstance = null;
+
+        function showLoading(msg = 'Processing...') {
+            loadingMessage.textContent = msg;
+            loadingOverlay.classList.remove('d-none');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('d-none');
+        }
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('d-none');
+            successAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showSuccess(message) {
+            successAlert.textContent = message;
+            successAlert.classList.remove('d-none');
+            errorAlert.classList.add('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Load active Job Description
+        async function loadJobDescription() {
+            try {
+                const response = await fetch('/job-description');
+                if (response.status === 404) {
+                    noJdState.classList.remove('d-none');
+                    activeJdState.classList.add('d-none');
+                    jdActionsFooter.classList.add('d-none');
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Failed to load active job description');
+
+                const jd = await response.json();
+
+                displayTitle.textContent = jd.title || 'N/A';
+                displayDescription.textContent = jd.description || 'N/A';
+                
+                // Skills rendering
+                displaySkills.innerHTML = '';
+                if (jd.requiredSkills && jd.requiredSkills.length > 0) {
+                    jd.requiredSkills.forEach(skill => {
+                        const badge = document.createElement('span');
+                        badge.className = 'skill-badge';
+                        badge.textContent = skill;
+                        displaySkills.appendChild(badge);
+                    });
+                } else {
+                    displaySkills.innerHTML = '<span class="text-muted small">No specific skills parsed.</span>';
+                }
+
+                noJdState.classList.add('d-none');
+                activeJdState.classList.remove('d-none');
+                jdActionsFooter.classList.remove('d-none');
+
+            } catch (err) {
+                noJdState.classList.remove('d-none');
+                activeJdState.classList.add('d-none');
+                jdActionsFooter.classList.add('d-none');
+            }
+        }
+
+        // Submit Job Description Form
+        uploadJdForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            showLoading('Uploading job description...');
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+
+            const title = jdTitle.value.trim();
+            const skillsVal = jdSkills.value.trim();
+            const descVal = jdDescription.value.trim();
+
+            const combinedDescription = `Required Skills:
+${skillsVal}
+
+Job Description:
+${descVal}`;
+
+            try {
+                const response = await fetch('/upload-job-description', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        description: combinedDescription
+                    })
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || 'Upload failed');
+                }
+
+                showSuccess('Job Description uploaded successfully!');
+                uploadJdForm.reset();
+                await loadJobDescription();
+            } catch (err) {
+                showError('Unable to upload job description. ' + (err.message || ''));
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // Delete Modal trigger
+        deleteJdBtn.addEventListener('click', () => {
+            if (!deleteModalInstance) {
+                deleteModalInstance = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            }
+            deleteModalInstance.show();
+        });
+
+        // Confirm Delete click handler
+        confirmDeleteBtn.addEventListener('click', async () => {
+            if (deleteModalInstance) {
+                deleteModalInstance.hide();
+            }
+
+            showLoading('Deleting job description...');
+            errorAlert.classList.add('d-none');
+            successAlert.classList.add('d-none');
+
+            try {
+                const response = await fetch('/job-description', {
+                    method: 'DELETE'
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text || 'Delete failed');
+                }
+
+                showSuccess('Job Description deleted successfully!');
+                await loadJobDescription();
+            } catch (err) {
+                showError('Unable to delete job description. ' + (err.message || ''));
+            } finally {
+                hideLoading();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadJobDescription);
+    })();
+</script>

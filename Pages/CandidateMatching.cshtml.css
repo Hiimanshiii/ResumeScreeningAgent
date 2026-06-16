@@ -1,0 +1,136 @@
+.matching-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.matching-card {
+    border-radius: 14px !important;
+    background-color: #ffffff;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.top-candidate-card {
+    border-radius: 16px !important;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(2, 132, 199, 0.05) 100%);
+    border: 1px solid rgba(14, 165, 233, 0.15) !important;
+}
+
+.top-score-badge {
+    width: 60px;
+    height: 60px;
+    background: #0ea5e9;
+    color: #ffffff;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2);
+}
+
+.table th {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+.table th.sortable:hover {
+    color: #0ea5e9;
+}
+
+.table th.sortable i {
+    font-size: 0.75rem;
+    margin-left: 4px;
+}
+
+.table td {
+    color: #334155;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.btn-action {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-view-details {
+    color: #0ea5e9;
+    background-color: rgba(14, 165, 233, 0.08);
+    border: none;
+}
+
+.btn-view-details:hover {
+    color: #ffffff;
+    background-color: #0ea5e9;
+}
+
+.btn-gen-questions {
+    color: #10b981;
+    background-color: rgba(16, 185, 129, 0.08);
+    border: none;
+}
+
+.btn-gen-questions:hover {
+    color: #ffffff;
+    background-color: #10b981;
+}
+
+.badge-score {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+}
+
+.badge-rec {
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 0.3rem 0.6rem;
+    border-radius: 8px;
+}
+
+.modal-content {
+    border-radius: 16px !important;
+}
+
+.skill-tag {
+    background-color: #f1f5f9;
+    color: #475569;
+    font-size: 0.8rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+}
+
+.skill-tag-matched {
+    background-color: rgba(34, 197, 94, 0.08);
+    color: #16a34a;
+}
+
+.skill-tag-missing {
+    background-color: rgba(239, 68, 68, 0.08);
+    color: #dc2626;
+}
+
+#loadingOverlay {
+    border-radius: 14px;
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}

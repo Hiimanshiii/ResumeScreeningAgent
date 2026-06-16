@@ -1,0 +1,474 @@
+@page
+@model ResumeScreeningAgent.Pages.CandidateMatchingModel
+@{
+    ViewData["Title"] = "Candidate Matching Results";
+}
+
+<div class="matching-wrapper py-4">
+    <!-- Page Header -->
+    <div class="d-flex align-items-center justify-content-between mb-4 pb-2">
+        <div>
+            <h1 class="fw-bold text-dark mb-1">Candidate Matching Results</h1>
+            <p class="text-muted mb-0">Ranked matching results of candidates analyzed against active job description requirements</p>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    <div id="errorAlert" class="alert alert-danger d-none mb-4 animate__animated animate__fadeIn" role="alert"></div>
+
+    <div class="position-relative" style="min-height: 300px;">
+        <!-- Loading Overlay -->
+        <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index:10;">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem;"></div>
+                <div class="mt-2 text-secondary fw-semibold">Matching resumes against job description requirements...</div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="card shadow-sm matching-card p-5 text-center d-none">
+            <i class="bi bi-people text-muted" style="font-size: 4rem;"></i>
+            <h5 class="fw-bold text-secondary mt-3">No Candidate Matches Found</h5>
+            <p class="text-muted small mx-auto" style="max-width: 480px;">Please ensure you have uploaded active candidate resumes and configured a job description first.</p>
+            <div class="d-flex justify-content-center gap-2 mt-4">
+                <a asp-page="/UploadResumes" class="btn btn-outline-primary rounded-3 px-3 fw-semibold btn-sm">Upload Resumes</a>
+                <a asp-page="/JobDescription" class="btn btn-primary rounded-3 px-3 fw-semibold text-white btn-sm">Manage Job Description</a>
+            </div>
+        </div>
+
+        <!-- Content View -->
+        <div id="matchingContentView" class="d-none animate__animated animate__fadeIn">
+            
+            <!-- Top Candidate Highlighted Banner -->
+            <div id="topCandidateBanner" class="card top-candidate-card p-4 mb-4 shadow-sm border-0">
+                <div class="row align-items-center">
+                    <div class="col-12 col-md-8">
+                        <span class="badge bg-primary text-white text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em; font-weight: 600;">Top Recommended Match</span>
+                        <h2 class="fw-bold text-dark mb-1" id="topCandidateName">—</h2>
+                        <div class="d-flex flex-wrap gap-3 text-secondary small mt-2">
+                            <span><i class="bi bi-envelope"></i> <span id="topCandidateEmail">—</span></span>
+                            <span><i class="bi bi-telephone"></i> <span id="topCandidatePhone">—</span></span>
+                            <span><i class="bi bi-briefcase"></i> <span id="topCandidateExperience">—</span></span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4 text-md-end mt-3 mt-md-0">
+                        <div class="d-inline-flex align-items-center gap-3 bg-white p-3 rounded-4 shadow-sm">
+                            <div class="text-start">
+                                <span class="text-muted small fw-bold text-uppercase d-block" style="font-size: 0.7rem; letter-spacing: 0.05em;">Match Score</span>
+                                <span class="badge badge-rec" id="topCandidateRec">Strong Hire</span>
+                            </div>
+                            <div class="top-score-badge" id="topCandidateScore">95</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Card -->
+            <div class="card shadow-sm matching-card p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold text-dark mb-0">Candidate Ranking</h5>
+                    <span class="text-muted small fw-semibold" id="totalCandidatesText">Total Candidates: 0</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead>
+                            <tr>
+                                <th class="sortable" id="sortRankBtn">Rank <i class="bi bi-arrow-down-up"></i></th>
+                                <th>Candidate Name</th>
+                                <th>Email</th>
+                                <th class="sortable" id="sortScoreBtn">Score <i class="bi bi-arrow-down-up"></i></th>
+                                <th>Recommendation</th>
+                                <th>Matched Skills</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="candidatesTableBody">
+                            <!-- Dynamic Rows -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="detailsModalLabel">Candidate Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="row g-4">
+                    <div class="col-12 col-md-6 border-end">
+                        <h4 class="fw-bold text-primary mb-1" id="modalName">—</h4>
+                        <p class="text-secondary small mb-3" id="modalEmail">—</p>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-uppercase text-muted fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.05em;">Phone Contact</h6>
+                            <p class="text-dark small" id="modalPhone">—</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6 class="text-uppercase text-muted fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.05em;">Education</h6>
+                            <p class="text-dark small" id="modalEducation" style="white-space: pre-wrap;">—</p>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="text-uppercase text-muted fw-bold small" style="font-size: 0.75rem; letter-spacing: 0.05em;">Experience</h6>
+                            <p class="text-dark small" id="modalExperience" style="white-space: pre-wrap;">—</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3 d-flex gap-2 align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted fw-bold small mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Score</h6>
+                                <span class="badge badge-score" id="modalScore">—</span>
+                            </div>
+                            <div class="ms-3">
+                                <h6 class="text-uppercase text-muted fw-bold small mb-1" style="font-size: 0.75rem; letter-spacing: 0.05em;">Recommendation</h6>
+                                <span class="badge badge-rec" id="modalRec">—</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">Skills Breakdown</h6>
+                            <div class="mb-2">
+                                <span class="text-success small fw-semibold d-block mb-1">Matched Skills:</span>
+                                <div id="modalMatchedSkills" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+                            <div>
+                                <span class="text-danger small fw-semibold d-block mb-1">Missing Skills:</span>
+                                <div id="modalMissingSkills" class="d-flex flex-wrap gap-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="text-uppercase text-muted fw-bold small mb-2" style="font-size: 0.75rem; letter-spacing: 0.05em;">AI Candidate Summary</h6>
+                            <p class="text-secondary small" id="modalSummary" style="line-height: 1.5;">—</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary rounded-3 px-3 fw-semibold text-white btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Questions Modal -->
+<div class="modal fade" id="questionsModal" tabindex="-1" aria-labelledby="questionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="questionsModalLabel">AI Generated Interview Questions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                <h5 class="fw-bold text-secondary mb-3" id="questionsCandidateName">—</h5>
+                
+                <!-- Spinner -->
+                <div id="questionsSpinner" class="text-center py-5">
+                    <div class="spinner-border text-success" role="status" style="width:2rem;height:2rem;"></div>
+                    <div class="mt-2 text-muted small fw-semibold">Consulting AI for interview questions...</div>
+                </div>
+
+                <!-- Content list -->
+                <div id="questionsListWrapper" class="d-none">
+                    <ol class="list-group list-group-numbered" id="questionsList">
+                        <!-- dynamic items -->
+                    </ol>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-success rounded-3 px-3 fw-semibold text-white btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const emptyState = document.getElementById('emptyState');
+        const matchingContentView = document.getElementById('matchingContentView');
+        const errorAlert = document.getElementById('errorAlert');
+
+        const topCandidateName = document.getElementById('topCandidateName');
+        const topCandidateEmail = document.getElementById('topCandidateEmail');
+        const topCandidatePhone = document.getElementById('topCandidatePhone');
+        const topCandidateExperience = document.getElementById('topCandidateExperience');
+        const topCandidateRec = document.getElementById('topCandidateRec');
+        const topCandidateScore = document.getElementById('topCandidateScore');
+        
+        const totalCandidatesText = document.getElementById('totalCandidatesText');
+        const candidatesTableBody = document.getElementById('candidatesTableBody');
+
+        const sortRankBtn = document.getElementById('sortRankBtn');
+        const sortScoreBtn = document.getElementById('sortScoreBtn');
+
+        let candidatesList = [];
+        let sortDirections = { rank: true, score: false }; // true = asc, false = desc
+
+        function showLoading() {
+            loadingOverlay.classList.remove('d-none');
+        }
+
+        function hideLoading() {
+            loadingOverlay.classList.add('d-none');
+        }
+
+        function showError(message) {
+            errorAlert.textContent = message;
+            errorAlert.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Run matching process
+        async function runCandidateMatching() {
+            showLoading();
+            errorAlert.classList.add('d-none');
+            emptyState.classList.add('d-none');
+            matchingContentView.classList.add('d-none');
+
+            try {
+                const response = await fetch('/match-resumes-with-job', { method: 'POST' });
+                if (response.status === 404) {
+                    hideLoading();
+                    emptyState.classList.remove('d-none');
+                    return;
+                }
+
+                if (!response.ok) throw new Error('Server returned ' + response.status);
+
+                const data = await response.json();
+                candidatesList = data || [];
+
+                if (candidatesList.length === 0) {
+                    emptyState.classList.remove('d-none');
+                } else {
+                    renderDashboardMatching();
+                    matchingContentView.classList.remove('d-none');
+                }
+            } catch (err) {
+                showError('Unable to match candidates. ' + (err.message || ''));
+                emptyState.classList.remove('d-none');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function getScoreBadgeClass(score) {
+            if (score >= 90) return 'bg-success text-white';
+            if (score >= 70) return 'bg-primary text-white';
+            if (score >= 50) return 'bg-warning text-dark';
+            return 'bg-danger text-white';
+        }
+
+        function getRecBadgeClass(rec) {
+            const r = String(rec).toLowerCase();
+            if (r.includes('strong hire')) return 'bg-success text-white';
+            if (r.includes('hire')) return 'bg-primary text-white';
+            if (r.includes('consider')) return 'bg-warning text-dark';
+            return 'bg-danger text-white';
+        }
+
+        function renderDashboardMatching() {
+            // Render total count
+            totalCandidatesText.textContent = `Total Candidates: ${candidatesList.length}`;
+
+            // Render top candidate banner
+            const top = candidatesList.reduce((prev, current) => (prev.score > current.score) ? prev : current, candidatesList[0]);
+            if (top) {
+                topCandidateName.textContent = top.name || 'N/A';
+                topCandidateEmail.textContent = top.email || 'N/A';
+                topCandidatePhone.textContent = top.phone || 'N/A';
+                
+                let exp = top.experience || 'N/A';
+                if (exp !== 'N/A' && exp.length > 120) {
+                    exp = exp.substring(0, 120) + '...';
+                }
+                topCandidateExperience.textContent = exp;
+                topCandidateScore.textContent = Math.round(top.score);
+                // Color formatting
+                if (top.recommendation === "Not Available") {
+                    topCandidateRec.classList.add('d-none');
+                } else {
+                    topCandidateRec.classList.remove('d-none');
+                    topCandidateRec.textContent = top.recommendation || 'Consider';
+                    topCandidateRec.className = `badge badge-rec ${getRecBadgeClass(top.recommendation)}`;
+                }
+                topCandidateScore.className = `top-score-badge ${getScoreBadgeClass(top.score)}`;
+            }
+
+            // Render table
+            renderTableBody();
+        }
+
+        function renderTableBody() {
+            candidatesTableBody.innerHTML = '';
+            candidatesList.forEach(c => {
+                const tr = document.createElement('tr');
+                const matchedCount = c.matchedSkills ? c.matchedSkills.length : 0;
+                const recBadge = (c.recommendation && c.recommendation !== "Not Available")
+                    ? `<span class="badge badge-rec ${getRecBadgeClass(c.recommendation)}">${c.recommendation}</span>`
+                    : '<span class="text-muted small">—</span>';
+                tr.innerHTML = `
+                    <td class="fw-bold text-secondary">#${c.rank}</td>
+                    <td class="fw-semibold text-dark">${escapeHtml(c.name)}</td>
+                    <td class="text-muted small">${escapeHtml(c.email)}</td>
+                    <td><span class="badge badge-score ${getScoreBadgeClass(c.score)}">${Math.round(c.score)}</span></td>
+                    <td>${recBadge}</td>
+                    <td class="fw-semibold text-primary"><i class="bi bi-check-all"></i> ${matchedCount}</td>
+                    <td class="text-end">
+                        <button type="button" class="btn-action btn-view-details" onclick="openDetailsModal('${encodeURIComponent(JSON.stringify(c))}')">
+                            <i class="bi bi-info-circle"></i> Details
+                        </button>
+                        <button type="button" class="btn-action btn-gen-questions" onclick="generateQuestions(${c.rank}, '${escapeHtml(c.name)}')">
+                            <i class="bi bi-question-circle"></i> Questions
+                        </button>
+                    </td>
+                `;
+                candidatesTableBody.appendChild(tr);
+            });
+        }
+
+        function escapeHtml(string) {
+            return String(string).replace(/[&<>"']/g, function (s) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                }[s];
+            });
+        }
+
+        // Sorting
+        sortRankBtn.addEventListener('click', () => {
+            sortDirections.rank = !sortDirections.rank;
+            candidatesList.sort((a, b) => sortDirections.rank ? a.rank - b.rank : b.rank - a.rank);
+            renderTableBody();
+        });
+
+        sortScoreBtn.addEventListener('click', () => {
+            sortDirections.score = !sortDirections.score;
+            candidatesList.sort((a, b) => sortDirections.score ? a.score - b.score : b.score - a.score);
+            renderTableBody();
+        });
+
+        // Details Modal populator
+        window.openDetailsModal = function(dataStr) {
+            const c = JSON.parse(decodeURIComponent(dataStr));
+            
+            document.getElementById('modalName').textContent = c.name || 'N/A';
+            document.getElementById('modalEmail').textContent = c.email || 'N/A';
+            document.getElementById('modalPhone').textContent = c.phone || 'N/A';
+            document.getElementById('modalEducation').textContent = c.education || 'N/A';
+            document.getElementById('modalExperience').textContent = c.experience || 'N/A';
+            
+            const scoreBadge = document.getElementById('modalScore');
+            scoreBadge.textContent = Math.round(c.score);
+            scoreBadge.className = `badge badge-score ${getScoreBadgeClass(c.score)}`;
+
+            const recBadge = document.getElementById('modalRec');
+            if (c.recommendation === "Not Available") {
+                recBadge.classList.add('d-none');
+            } else {
+                recBadge.classList.remove('d-none');
+                recBadge.textContent = c.recommendation || 'Consider';
+                recBadge.className = `badge badge-rec ${getRecBadgeClass(c.recommendation)}`;
+            }
+
+            // Matched Skills tags
+            const matchedWrapper = document.getElementById('modalMatchedSkills');
+            matchedWrapper.innerHTML = '';
+            if (c.matchedSkills && c.matchedSkills.length > 0) {
+                c.matchedSkills.forEach(s => {
+                    const tag = document.createElement('span');
+                    tag.className = 'skill-tag skill-tag-matched';
+                    tag.textContent = s;
+                    matchedWrapper.appendChild(tag);
+                });
+            } else {
+                matchedWrapper.innerHTML = '<span class="text-muted small">None</span>';
+            }
+
+            // Missing Skills tags
+            const missingWrapper = document.getElementById('modalMissingSkills');
+            missingWrapper.innerHTML = '';
+            if (c.missingSkills && c.missingSkills.length > 0) {
+                c.missingSkills.forEach(s => {
+                    const tag = document.createElement('span');
+                    tag.className = 'skill-tag skill-tag-missing';
+                    tag.textContent = s;
+                    missingWrapper.appendChild(tag);
+                });
+            } else {
+                missingWrapper.innerHTML = '<span class="text-muted small">None</span>';
+            }
+
+            document.getElementById('modalSummary').textContent = c.summary || 'Summary data not available.';
+
+            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            detailsModal.show();
+        };
+
+        // Dynamically Generate Questions
+        let questionsModalInstance = null;
+        window.generateQuestions = async function(rank, name) {
+            document.getElementById('questionsCandidateName').textContent = `Candidate: ${name}`;
+            
+            const listWrapper = document.getElementById('questionsListWrapper');
+            const spinner = document.getElementById('questionsSpinner');
+            const qList = document.getElementById('questionsList');
+
+            listWrapper.classList.add('d-none');
+            spinner.classList.remove('d-none');
+
+            if (!questionsModalInstance) {
+                questionsModalInstance = new bootstrap.Modal(document.getElementById('questionsModal'));
+            }
+            questionsModalInstance.show();
+
+            try {
+                const res = await fetch(`/candidate/${rank}/questions`);
+                if (!res.ok) throw new Error('Failed to load questions');
+
+                const data = await res.json();
+                const questions = data.questions || [];
+
+                qList.innerHTML = '';
+                if (questions.length === 0) {
+                    qList.innerHTML = '<li class="list-group-item text-muted">No questions available.</li>';
+                } else {
+                    questions.forEach(q => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item d-flex justify-content-between align-items-start py-3 border-0 border-bottom';
+                        li.innerHTML = `
+                            <div class="ms-2 me-auto">
+                                <div class="fw-semibold text-dark">${escapeHtml(q)}</div>
+                            </div>
+                        `;
+                        qList.appendChild(li);
+                    });
+                }
+
+                spinner.classList.add('d-none');
+                listWrapper.classList.remove('d-none');
+            } catch (err) {
+                qList.innerHTML = `<li class="list-group-item text-danger">Unable to load questions. ${err.message || ''}</li>`;
+                spinner.classList.add('d-none');
+                listWrapper.classList.remove('d-none');
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', runCandidateMatching);
+    })();
+</script>

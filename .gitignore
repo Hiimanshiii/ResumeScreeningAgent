@@ -1,0 +1,25 @@
+# Environment variables
+.env
+
+# Uploads
+Uploads/
+
+# Generated reports
+Reports/
+
+# Build folders
+bin/
+obj/
+
+# Visual Studio files
+.vs/
+
+# Rider files
+.idea/
+
+# User-specific files
+*.user
+*.suo
+
+# Logs
+*.log

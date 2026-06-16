@@ -1,0 +1,117 @@
+.dashboard-wrapper {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Card Design & Micro-interactions */
+.stat-card {
+    border-radius: 14px !important;
+    background-color: #ffffff;
+    border: none !important;
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Metric sizes & styles */
+.metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.metric-value-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.2;
+}
+
+.metric-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Border colors */
+.card-total-resumes {
+    border-left: 5px solid #0ea5e9 !important; /* Primary Blue */
+}
+.icon-total-resumes {
+    color: #0ea5e9;
+    background-color: rgba(14, 165, 233, 0.1);
+}
+
+.card-top-candidate {
+    border-left: 5px solid #22c55e !important; /* Success Green */
+}
+.icon-top-candidate {
+    color: #22c55e;
+    background-color: rgba(34, 197, 94, 0.1);
+}
+
+/* Icon Wrapper */
+.stat-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.4rem;
+}
+
+/* Quick Actions Section */
+.quick-actions-card {
+    border-radius: 16px !important;
+    background: #ffffff;
+    border: none !important;
+}
+
+.btn-quick-action {
+    height: 65px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background-color: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    cursor: pointer;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -1px rgba(0, 0, 0, 0.02);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-quick-action:hover {
+    background-color: #f1f5f9;
+    color: #0ea5e9;
+    border-color: #0ea5e9;
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(14, 165, 233, 0.08), 0 4px 6px -2px rgba(14, 165, 233, 0.04);
+}
+
+.btn-quick-action i {
+    font-size: 1.35rem;
+    color: #64748b;
+    transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-quick-action:hover i {
+    color: #0ea5e9;
+}
+
+/* Loading Overlay & Transitions */
+#loadingOverlay {
+    border-radius: 14px;
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+}
