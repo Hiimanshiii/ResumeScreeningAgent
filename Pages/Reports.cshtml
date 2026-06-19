@@ -268,7 +268,7 @@
                 }
 
                 // 2. Load candidate ranking details
-                const candidatesResponse = await fetch('/match-job');
+                const candidatesResponse = await fetch('/candidates');
                 if (!candidatesResponse.ok) throw new Error('Failed to load candidate list.');
                 const candidates = await candidatesResponse.json();
 

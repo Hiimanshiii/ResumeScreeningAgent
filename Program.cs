@@ -511,6 +511,13 @@ async (
     return Results.Ok(dashboard);
 });
 
+app.MapGet("/candidates",
+async (ICandidateRepository candidateRepo) =>
+{
+    var candidates = await candidateRepo.GetAllCandidatesAsync();
+    return Results.Ok(CleanCandidates(candidates));
+});
+
 app.MapGet("/candidate/{rank}/questions",
 async (
     int rank,
