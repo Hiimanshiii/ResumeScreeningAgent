@@ -39,7 +39,7 @@ builder.Services.AddSingleton<ReportService>();
 builder.Services.AddSingleton<FileUploadService>();
 builder.Services.AddDbContext<ResumeScreeningDbContext>(
     options =>
-        options.UseSqlServer(
+        options.UseSqlite(
             builder.Configuration.GetConnectionString(
                 "ResumeScreeningDb")));
 
