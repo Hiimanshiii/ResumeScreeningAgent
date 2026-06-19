@@ -14,6 +14,10 @@
     </div>
 
     <div id="errorAlert" class="alert alert-danger d-none mb-4" role="alert"></div>
+    <div id="infoAlert" class="alert alert-warning d-none mb-4 d-flex align-items-center shadow-sm border-start border-4 border-warning" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-3 fs-4 text-warning"></i>
+        <div id="infoAlertMessage" class="fw-semibold"></div>
+    </div>
 
     <div class="position-relative">
         <!-- Loading Overlay -->
@@ -110,11 +114,27 @@
             if (topCandidateEl) {
                 topCandidateEl.textContent = data.topCandidate ?? '—';
             }
+
+            const infoAlert = document.getElementById('infoAlert');
+            const infoAlertMessage = document.getElementById('infoAlertMessage');
+            if (infoAlert && infoAlertMessage) {
+                const message = data.message || data.Message;
+                if (message) {
+                    infoAlertMessage.textContent = message;
+                    infoAlert.classList.remove('d-none');
+                } else {
+                    infoAlert.classList.add('d-none');
+                }
+            }
         }
 
         async function loadDashboard() {
             showLoading();
             errorAlert.classList.add('d-none');
+            const infoAlert = document.getElementById('infoAlert');
+            if (infoAlert) {
+                infoAlert.classList.add('d-none');
+            }
 
             try {
                 const res = await fetch('/dashboard', { method: 'GET', headers: { 'Accept': 'application/json' } });

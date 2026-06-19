@@ -428,19 +428,7 @@ async (
     ICandidateRepository candidateRepo
 ) =>
 {
-    JobDescription? job =
-        jobService.Get();
-
-    if (job is null)
-    {
-        return Results.NotFound(
-            new
-            {
-                Message = "No Job Description found"
-            });
-    }
-
-    var dbCandidates = await candidateRepo.GetAllCandidatesAsync();
+    JobDescription? job = jobService.Get();
 
     string resumeFolder =
         Path.Combine(
@@ -448,9 +436,30 @@ async (
             "Uploads",
             "Resumes");
 
-    List<Candidate> candidates =
-        resumeService.ParseAllResumes(
-            resumeFolder);
+    bool hasResumes = Directory.Exists(resumeFolder) && Directory.GetFiles(resumeFolder).Length > 0;
+
+    List<Candidate> candidates = new();
+    if (hasResumes)
+    {
+        candidates = resumeService.ParseAllResumes(resumeFolder);
+    }
+
+    if (job is null || !hasResumes || candidates.Count == 0)
+    {
+        return Results.Ok(new DashboardResponse
+        {
+            TotalResumes = 0,
+            TopCandidate = "N/A",
+            AverageScore = 0,
+            StrongHireCount = 0,
+            HireCount = 0,
+            ConsiderCount = 0,
+            RejectCount = 0,
+            Message = "Please upload resumes and add a Job Description to begin screening candidates."
+        });
+    }
+
+    var dbCandidates = await candidateRepo.GetAllCandidatesAsync();
 
     candidates =
         resumeService.ScoreAllCandidates(

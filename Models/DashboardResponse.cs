@@ -15,4 +15,6 @@ public class DashboardResponse
     public int ConsiderCount { get; set; }
 
     public int RejectCount { get; set; }
+
+    public string Message { get; set; } = "";
 }
