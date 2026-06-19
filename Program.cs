@@ -407,9 +407,10 @@ async (
 });
 
 app.MapGet("/dashboard",
-(
+async (
     ResumeService resumeService,
-    JobDescriptionService jobService
+    JobDescriptionService jobService,
+    ICandidateRepository candidateRepo
 ) =>
 {
     JobDescription? job =
@@ -423,6 +424,8 @@ app.MapGet("/dashboard",
                 Message = "No Job Description found"
             });
     }
+
+    var dbCandidates = await candidateRepo.GetAllCandidatesAsync();
 
     string resumeFolder =
         Path.Combine(
@@ -443,15 +446,25 @@ app.MapGet("/dashboard",
         resumeService.RankCandidates(
             candidates);
 
+    bool hasApiFailure = 
+        dbCandidates.Any(c => 
+            !string.IsNullOrEmpty(c.Summary) && 
+            (c.Summary.Contains("Gemini Error", StringComparison.OrdinalIgnoreCase) || 
+             c.Summary.Contains("429 Too Many Requests", StringComparison.OrdinalIgnoreCase))) ||
+        candidates.Any(c => 
+            !string.IsNullOrEmpty(c.Summary) && 
+            (c.Summary.Contains("Gemini Error", StringComparison.OrdinalIgnoreCase) || 
+             c.Summary.Contains("429 Too Many Requests", StringComparison.OrdinalIgnoreCase)));
+
     DashboardResponse dashboard =
         new()
         {
             TotalResumes =
                 candidates.Count,
 
-            TopCandidate =
-                candidates.FirstOrDefault()?.Name
-                ?? "N/A",
+            TopCandidate = hasApiFailure
+                ? "API Rate Limit Reached"
+                : (candidates.FirstOrDefault()?.Name ?? "N/A"),
 
             AverageScore =
                 SafeNumber(candidates.Any()
